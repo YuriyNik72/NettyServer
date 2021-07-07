@@ -1,6 +1,7 @@
 package netty;
 
-import handlers.ChatMessageHandler;
+
+import handlers.FileStorageHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -8,24 +9,23 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 
-
 public class NettyBaseServer {
     public NettyBaseServer() {
-        EventLoopGroup auth = new NioEventLoopGroup(1); //light
-        EventLoopGroup works = new NioEventLoopGroup();
+        EventLoopGroup auth = new NioEventLoopGroup(1); // light
+        EventLoopGroup worker = new NioEventLoopGroup();
 
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
 
-            bootstrap.group(auth, works)
+            bootstrap.group(auth, worker)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<>() {
                         @Override
                         protected void initChannel(Channel channel) throws Exception {
                             channel.pipeline().addLast(
-                                    new StringDecoder(),
-                                    new StringEncoder(),
-                                    new ChatMessageHandler()
+                                    new StringDecoder(), // in - 1
+                                    new StringEncoder(), // out - 1
+                                    (ChannelHandler) new FileStorageHandler() // in - 2
                             );
                         }
                     });
@@ -33,15 +33,16 @@ public class NettyBaseServer {
             System.out.println("Server started");
             future.channel().closeFuture().sync();
             System.out.println("Server finished");
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
-        }finally {
-         auth.shutdownGracefully();
-         works.shutdownGracefully();
+        } finally {
+            auth.shutdownGracefully();
+            worker.shutdownGracefully();
         }
     }
 
     public static void main(String[] args) {
         new NettyBaseServer();
     }
+
 }
